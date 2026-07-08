@@ -19,7 +19,7 @@ import versionInfo
 from queueHandler import queueFunction, eventQueue
 from eventHandler import FocusLossCancellableSpeechCommand
 from gui import nvdaControls
-from scriptHandler import script
+from scriptHandler import script, getLastScriptRepeatCount
 
 try:
 	import nh3
@@ -53,11 +53,12 @@ DEFAULT_BEEP_DURATION = 120 # ms
 MIN_BEEP_DURATION = 1 # ms
 MAX_BEEP_DURATION = 500 # ms
 
+MAX_SPELL_LENGTH = 50
+
 HTML_CONTAINER_START = '<ul style="list-style: none">'
 HTML_CONTAINER_END = '</ul>'
 HTML_ITEM_START = '<li>'
 HTML_ITEM_END = '</li>'
-
 
 def makeHTMLList(strings):
 	listItems = ''.join((f'{HTML_ITEM_START}{string}{HTML_ITEM_END}' for string in map(nh3.clean_text, strings)))
@@ -80,6 +81,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SpeechHistorySettingsPanel)
 
 		self._history = deque(maxlen=config.conf[CONFIG_SECTION]['maxHistoryLength'])
+		self.history_pos = 0
 		self._recorded = []
 		self._recording = False
 		self._patch()
@@ -198,7 +200,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				# Translators: A short confirmation message spoken after copying a speech history item.
 				self.oldSpeak([_('All history copied')])
 
-	# Translators: Documentation string for copy all speech history script
+	# Translators: Documentation string for clear all speech history script
 	@script(description=_("Clear all NVDA's speech history"), category=SCRIPT_CATEGORY)
 	def script_clearHistory(self, gesture):
 		if not self._history:
@@ -207,6 +209,28 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._history.clear()
 		self.history_pos = 0
 		self.oldSpeak([_('History cleared')])
+
+	# Translators: Documentation string for Repeat what NVDA just said script
+	@script(description=_("Press once to repeat what NVDA just said, double to spell and triple to show in a browseable dialog"), category=SCRIPT_CATEGORY)
+	def script_repeatMostRecentStatement(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
+
+		repeat = getLastScriptRepeatCount()
+		if repeat == 1:
+			text = self.getTrimmedSequenceText(self._history[0])
+			if not text:
+				self.oldSpeak([_("No text to spell")])
+				return
+			if len(text) > MAX_SPELL_LENGTH:
+				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
+				return
+			speech.spellText(text)
+		elif repeat == 2:
+			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
+		else:
+			self.oldSpeak(self._history[0])
 
 	def terminate(self, *args, **kwargs):
 		super().terminate(*args, **kwargs)
