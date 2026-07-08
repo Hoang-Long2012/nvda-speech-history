@@ -10,6 +10,8 @@ In this version:
 * Pressing F12 will copy the currently selected item from the history, which is updated to be the most recent each time NVDA speaks.  In other words, F12 still behaves as it did in the older add-on, unless you've specifically selected an older spoken item to copy.
 * You can capture multiple speech history items in realtime, which is useful for e.g. bug reports without copying from the Speech Viewer.  Press NVDA+Shift+F11 to start recording, use NVDA as normal, and then press NVDA+Shift+F12 to stop recording.  All recorded speech will be copied to the clipboard, with items separated by a line break (`\n`).
 * Press NVDA+H to open a dialog containing your speech history.
+* NVDA+Shift+H to copy all history to your clipboard.
+* NVDA+Control+H to clear all NVDA's speech history.
 * The beep on new text function has been removed.
 
 ## Contributing
