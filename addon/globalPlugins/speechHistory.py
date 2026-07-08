@@ -5,9 +5,7 @@
 # See the file LICENSE for more details.
 
 from collections import deque
-
 import wx
-
 import addonHandler
 import api
 import config
@@ -97,11 +95,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Documentation string for copy currently selected speech history item script
 	@script(description=_('Copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA.'), category=SCRIPT_CATEGORY)
 	def script_copyLast(self, gesture):
-		text = self.getSequenceText(self._history[self.history_pos])
-		if config.conf[CONFIG_SECTION]['trimWhitespaceFromStart']:
-			text = text.lstrip()
-		if config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd']:
-			text = text.rstrip()
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
+		text = self.getTrimmedSequenceText(self._history[self.history_pos])
 
 		postCopyAction = config.conf[CONFIG_SECTION]['postCopyAction']
 		if api.copyToClip(text):
@@ -114,6 +111,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Documentation string for previous speech history item script
 	@script(description=_('Review the previous item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_prevString(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
 		self.history_pos += 1
 		if self.history_pos > len(self._history) - 1:
 			tones.beep(200, 100)
@@ -123,6 +123,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Documentation string for next speech history item script
 	@script(description=_('Review the next item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_nextString(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
 		self.history_pos -= 1
 		if self.history_pos < 0:
 			tones.beep(200, 100)
@@ -176,6 +179,35 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		except TypeError:
 			ui.browseableMessage(message=message, title=title, isHtml=True, closeButton=True)
 
+	# Translators: Documentation string for copy all speech history script
+	@script(description=_("Copy all NVDA's speech history to clipboard"), category=SCRIPT_CATEGORY)
+	def script_copyAllHistory(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
+		sentences = []
+		for seq in self._history:
+			text = self.getTrimmedSequenceText(seq)
+			sentences.append(text)
+
+		postCopyAction = config.conf[CONFIG_SECTION]['postCopyAction']
+		if api.copyToClip("\n".join(sentences)):
+			if postCopyAction in (POST_COPY_BEEP, POST_COPY_BOTH):
+				tones.beep(config.conf[CONFIG_SECTION]['beepFrequency'], config.conf[CONFIG_SECTION]['beepDuration'])
+			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
+				# Translators: A short confirmation message spoken after copying a speech history item.
+				self.oldSpeak([_('All history copied')])
+
+	# Translators: Documentation string for copy all speech history script
+	@script(description=_("Clear all NVDA's speech history"), category=SCRIPT_CATEGORY)
+	def script_clearHistory(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			return
+		self._history.clear()
+		self.history_pos = 0
+		self.oldSpeak([_('History cleared')])
+
 	def terminate(self, *args, **kwargs):
 		super().terminate(*args, **kwargs)
 		if BUILD_YEAR >= 2021:
@@ -201,6 +233,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def getSequenceText(self, sequence):
 		return speechViewer.SPEECH_ITEM_SEPARATOR.join([x for x in sequence if isinstance(x, str)])
 
+	def getTrimmedSequenceText(self, sequence):
+		text = self.getSequenceText(sequence)
+		if config.conf[CONFIG_SECTION]["trimWhitespaceFromStart"]:
+			text = text.lstrip()
+		if config.conf[CONFIG_SECTION]["trimWhitespaceFromEnd"]:
+			text = text.rstrip()
+		return text
+
 	__gestures = {
 		'kb:f12': 'copyLast',
 		'kb:shift+f11': 'prevString',
@@ -208,6 +248,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		'kb:NVDA+shift+f11': 'startRecording',
 		'kb:NVDA+shift+f12': 'stopRecording',
 		'kb:NVDA+h': 'showHistory',
+		'kb:NVDA+shift+h': 'copyAllHistory',
+		'kb:NVDA+control+h': 'clearHistory'
 	}
 
 
