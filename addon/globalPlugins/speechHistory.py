@@ -226,7 +226,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if len(text) > MAX_SPELL_LENGTH:
 				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
 				return
-			speech.spellText(text)
+			self.oldSpeak([speech.getSpellingSpeech(text)])
 		elif repeat == 2:
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
@@ -273,7 +273,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		'kb:NVDA+shift+f12': 'stopRecording',
 		'kb:NVDA+h': 'showHistory',
 		'kb:NVDA+shift+h': 'copyAllHistory',
-		'kb:NVDA+control+h': 'clearHistory'
+		'kb:NVDA+control+h': 'clearHistory',
+		'kb:NVDA+x': 'repeatMostRecentStatement'
 	}
 
 
