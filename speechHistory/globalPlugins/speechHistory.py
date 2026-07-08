@@ -174,9 +174,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		title = _('Speech History')
 
 		try:
-			ui.browseableMessage(message=message, title=title, isHtml=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
+			ui.browseableMessage(message=message, title=title, isHtml=True, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
 		except TypeError:
-			ui.browseableMessage(message=message, title=title, isHtml=True)
+			ui.browseableMessage(message=message, title=title, isHtml=True, closeButton=True)
 	# Translators: Documentation string for show speech history script
 	script_showHistory.__doc__ = _("Show NVDA's speech history in a browseable list")
 	script_showHistory.category = SCRCAT_SPEECH
