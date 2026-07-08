@@ -23,6 +23,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+.sconsign.dblite
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -90,3 +91,6 @@ ENV/
 
 # NVDA
 *..nvda-addon
+
+# Docs
+/addon/doc/**/*.html
