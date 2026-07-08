@@ -1,0 +1,8 @@
+{
+  "include": ["."],
+  "extraPaths": [
+    "../nvda/source",
+    "../nvda/miscDeps/python"
+  ],
+  "reportMissingImports": false
+}
