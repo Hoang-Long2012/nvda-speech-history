@@ -84,6 +84,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.history_pos = 0
 		self._recorded = []
 		self._recording = False
+		self.ignore_history = False
 		self._patch()
 
 	def _patch(self):
@@ -115,6 +116,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_prevString(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
 		self.history_pos += 1
 		if self.history_pos > len(self._history) - 1:
@@ -127,6 +129,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_nextString(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
 		self.history_pos -= 1
 		if self.history_pos < 0:
@@ -226,8 +229,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if len(text) > MAX_SPELL_LENGTH:
 				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
 				return
-			self.oldSpeak(speech.getSpellingSpeech(text))
+			self.ignore_history = True
+			try:
+				speech.speakSpelling(text)
+			finally:
+				self.ignore_history = False
 		elif repeat == 2:
+			
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
 			self.oldSpeak(self._history[0])
@@ -250,9 +258,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)
-		text = self.getSequenceText(sequence)
-		if text.strip():
-			queueFunction(eventQueue, self.append_to_history, sequence)
+		if not self.ignore_history:
+			text = self.getSequenceText(sequence)
+			if text.strip():
+				queueFunction(eventQueue, self.append_to_history, sequence)
 
 	def getSequenceText(self, sequence):
 		return speechViewer.SPEECH_ITEM_SEPARATOR.join([x for x in sequence if isinstance(x, str)])
