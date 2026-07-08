@@ -226,7 +226,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if len(text) > MAX_SPELL_LENGTH:
 				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
 				return
-			self.oldSpeak([speech.getSpellingSpeech(text)])
+			self.oldSpeak(speech.getSpellingSpeech(text))
 		elif repeat == 2:
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
