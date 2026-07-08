@@ -21,7 +21,7 @@ import versionInfo
 from queueHandler import queueFunction, eventQueue
 from eventHandler import FocusLossCancellableSpeechCommand
 from gui import nvdaControls
-from globalCommands import SCRCAT_SPEECH
+from scriptHandler import script
 
 try:
 	import nh3
@@ -34,6 +34,7 @@ addonHandler.initTranslation()
 
 BUILD_YEAR = getattr(versionInfo, 'version_year', 2021)
 CONFIG_SECTION = 'speechHistory'
+SCRIPT_CATEGORY = 'Speech History'
 
 DEFAULT_HISTORY_ENTRIES = 500
 MIN_HISTORY_ENTRIES = 1
@@ -77,7 +78,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			'trimWhitespaceFromEnd': 'boolean(default=false)',
 		}
 		config.conf.spec[CONFIG_SECTION] = confspec
-		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SpeechHistorySettingsPanel)
+		if SpeechHistorySettingsPanel not in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SpeechHistorySettingsPanel)
 
 		self._history = deque(maxlen=config.conf[CONFIG_SECTION]['maxHistoryLength'])
 		self._recorded = []
@@ -92,6 +94,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.oldSpeak = speech.speak
 			speech.speak = self.mySpeak
 
+	# Translators: Documentation string for copy currently selected speech history item script
+	@script(description=_('Copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA.'), category=SCRIPT_CATEGORY)
 	def script_copyLast(self, gesture):
 		text = self.getSequenceText(self._history[self.history_pos])
 		if config.conf[CONFIG_SECTION]['trimWhitespaceFromStart']:
@@ -107,20 +111,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				# Translators: A short confirmation message spoken after copying a speech history item.
 				self.oldSpeak([_('Copied')])
 
-	# Translators: Documentation string for copy currently selected speech history item script
-	script_copyLast.__doc__ = _('Copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA.')
-	script_copyLast.category = SCRCAT_SPEECH
-
+	# Translators: Documentation string for previous speech history item script
+	@script(description=_('Review the previous item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_prevString(self, gesture):
 		self.history_pos += 1
 		if self.history_pos > len(self._history) - 1:
 			tones.beep(200, 100)
 			self.history_pos -= 1
 		self.oldSpeak(self._history[self.history_pos])
-	# Translators: Documentation string for previous speech history item script
-	script_prevString.__doc__ = _('Review the previous item in NVDA\'s speech history.')
-	script_prevString.category = SCRCAT_SPEECH
 
+	# Translators: Documentation string for next speech history item script
+	@script(description=_('Review the next item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_nextString(self, gesture):
 		self.history_pos -= 1
 		if self.history_pos < 0:
@@ -128,10 +129,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.history_pos += 1
 
 		self.oldSpeak(self._history[self.history_pos])
-	# Translators: Documentation string for next speech history item script
-	script_nextString.__doc__ = _('Review the next item in NVDA\'s speech history.')
-	script_nextString.category = SCRCAT_SPEECH
 
+	# Translators: Documentation string for start recording script
+	@script(description=_('Start recording NVDA\'s speech output, for copying multiple announcements to the clipboard.'), category=SCRIPT_CATEGORY)
 	def script_startRecording(self, gesture):
 		if self._recording:
 			# Translators: Message spoken when speech recording is already active
@@ -141,10 +141,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Translators: Message spoken when speech recording is started
 		self.oldSpeak([_('Started recording speech')])
 		self._recording = True
-	# Translators: Documentation string for start recording script
-	script_startRecording.__doc__ = _('Start recording NVDA\'s speech output, for copying multiple announcements to the clipboard.')
-	script_startRecording.category = SCRCAT_SPEECH
 
+	# Translators: Documentation string for stop recording script
+	@script(description=_('Stop recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.'), category=SCRIPT_CATEGORY)
 	def script_stopRecording(self, gesture):
 		if not self._recording:
 			# Translators: Message spoken when speech recording is not already active
@@ -156,10 +155,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.oldSpeak([_('Recorded speech copied to clipboard')])
 		api.copyToClip('\n'.join(self._recorded))
 		self._recorded.clear()
-	# Translators: Documentation string for stop recording script
-	script_stopRecording.__doc__ = _('Stop recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.')
-	script_stopRecording.category = SCRCAT_SPEECH
 
+	# Translators: Documentation string for show speech history script
+	@script(description=_("Show NVDA's speech history in a browseable list"), category=SCRIPT_CATEGORY)
 	def script_showHistory(self, gesture):
 		if not BROWSE_MODE_HISTORY_SUPPORTED:
 			# Translators: A message shown when users try to view their speech history while running a version of NVDA where this function is not supported.
@@ -177,9 +175,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.browseableMessage(message=message, title=title, isHtml=True, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
 		except TypeError:
 			ui.browseableMessage(message=message, title=title, isHtml=True, closeButton=True)
-	# Translators: Documentation string for show speech history script
-	script_showHistory.__doc__ = _("Show NVDA's speech history in a browseable list")
-	script_showHistory.category = SCRCAT_SPEECH
 
 	def terminate(self, *args, **kwargs):
 		super().terminate(*args, **kwargs)
@@ -187,7 +182,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			speech.speech.speak = self.oldSpeak
 		else:
 			speech.speak = self.oldSpeak
-		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
+		if SpeechHistorySettingsPanel in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
 
 	def append_to_history(self, seq):
 		seq = [command for command in seq if not isinstance(command, FocusLossCancellableSpeechCommand)]
