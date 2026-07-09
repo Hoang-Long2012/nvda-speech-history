@@ -100,16 +100,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_copyLast(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
-		text = self.getTrimmedSequenceText(self._history[self.history_pos])
-
-		postCopyAction = config.conf[CONFIG_SECTION]['postCopyAction']
-		if api.copyToClip(text):
-			if postCopyAction in (POST_COPY_BEEP, POST_COPY_BOTH):
-				tones.beep(config.conf[CONFIG_SECTION]['beepFrequency'], config.conf[CONFIG_SECTION]['beepDuration'])
-			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
-				# Translators: A short confirmation message spoken after copying a speech history item.
-				self.oldSpeak([_('Copied')])
+		self.copyHistoryItemText(self._history[self.history_pos])
 
 	# Translators: Documentation string for previous speech history item script
 	@script(description=_('Review the previous item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
@@ -169,10 +162,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_showHistory(self, gesture):
 		if not BROWSE_MODE_HISTORY_SUPPORTED:
 			# Translators: A message shown when users try to view their speech history while running a version of NVDA where this function is not supported.
-			message = _('Viewing speech history is not supported in this version of NVDA for security reasons.')
+			self.oldSpeak([_('Viewing speech history is not supported in this version of NVDA for security reasons.')])
+			return
 		elif not self._history:
 			# Translators: A message shown when users try to view their speech history but it's empty.
-			message = _('No history items.')
+			self.oldSpeak([_('No history items.')])
+			tones.beep(200, 100)
+			return
 		else:
 			message = makeHTMLList((self.getSequenceText(item) for item in self._history))
 
@@ -189,6 +185,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_copyAllHistory(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
 		sentences = []
 		for seq in self._history:
@@ -208,6 +205,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_clearHistory(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
 		self._history.clear()
 		self.history_pos = 0
@@ -215,9 +213,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	# Translators: Documentation string for Repeat what NVDA just said script
 	@script(description=_("Press once to repeat what NVDA just said, double to spell and triple to show in a browseable dialog"), category=SCRIPT_CATEGORY)
-	def script_repeatMostRecentStatement(self, gesture):
+	def script_repeatMostRecentSpeech(self, gesture):
 		if not self._history:
 			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
 			return
 
 		repeat = getLastScriptRepeatCount()
@@ -239,6 +238,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
 			self.oldSpeak(self._history[0])
+
+	# Translators: Documentation string for copy  most recently NVDA's speech to clipboard script
+	@script(description=_("Copy most recently NVDA's speech to clipboard"), category=SCRIPT_CATEGORY)
+	def script_copyMostRecentSpeech(self, gesture):
+		if not self._history:
+			self.oldSpeak([_("No history items")])
+			tones.beep(200, 100)
+			return
+
+		self.copyHistoryItemText(self._history[0])
 
 	def terminate(self, *args, **kwargs):
 		super().terminate(*args, **kwargs)
@@ -274,6 +283,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			text = text.rstrip()
 		return text
 
+	def copyHistoryItemText(self, item):
+		text = self.getTrimmedSequenceText(item)
+
+		postCopyAction = config.conf[CONFIG_SECTION]['postCopyAction']
+		if api.copyToClip(text):
+			if postCopyAction in (POST_COPY_BEEP, POST_COPY_BOTH):
+				tones.beep(config.conf[CONFIG_SECTION]['beepFrequency'], config.conf[CONFIG_SECTION]['beepDuration'])
+			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
+				# Translators: A short confirmation message spoken after copying a speech history item.
+				self.oldSpeak([_('Copied')])
+
 	__gestures = {
 		'kb:f12': 'copyLast',
 		'kb:shift+f11': 'prevString',
@@ -283,7 +303,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		'kb:NVDA+h': 'showHistory',
 		'kb:NVDA+shift+h': 'copyAllHistory',
 		'kb:NVDA+control+h': 'clearHistory',
-		'kb:NVDA+x': 'repeatMostRecentStatement'
+		'kb:NVDA+x': 'repeatMostRecentSpeech',
+		'kb:NVDA+alt+h': 'copyMostRecentSpeech'
 	}
 
 
