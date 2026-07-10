@@ -5,12 +5,10 @@
 # See the file LICENSE for more details.
 
 from collections import deque
-import wx
 import addonHandler
 import api
 import config
 import globalPluginHandler
-import gui
 import speech
 import speechViewer
 import tones
@@ -18,8 +16,10 @@ import ui
 import versionInfo
 from queueHandler import queueFunction, eventQueue
 from eventHandler import FocusLossCancellableSpeechCommand
-from gui import nvdaControls
+from gui.settingsDialogs import NVDASettingsDialog
 from scriptHandler import script, getLastScriptRepeatCount
+from .settings import SpeechHistorySettingsPanel
+from .constants import (CONFIG_SECTION, POST_COPY_NOTHING, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec)
 
 try:
 	import nh3
@@ -31,34 +31,7 @@ except ImportError:
 addonHandler.initTranslation()
 
 BUILD_YEAR = getattr(versionInfo, 'version_year', 2021)
-CONFIG_SECTION = 'speechHistory'
-SCRIPT_CATEGORY = 'Speech History'
-
-DEFAULT_HISTORY_ENTRIES = 500
-MIN_HISTORY_ENTRIES = 1
-MAX_HISTORY_ENTRIES = 10000000
-
-POST_COPY_NOTHING = 'nothing'
-POST_COPY_BEEP = 'beep'
-POST_COPY_SPEAK = 'speak'
-POST_COPY_BOTH = 'speakAndBeep'
-
-DEFAULT_POST_COPY_ACTION = POST_COPY_BEEP
-
-DEFAULT_BEEP_FREQUENCY = 1500 # Hz
-MIN_BEEP_FREQUENCY = 1 # Hz
-MAX_BEEP_FREQUENCY = 20000 # Hz
-
-DEFAULT_BEEP_DURATION = 120 # ms
-MIN_BEEP_DURATION = 1 # ms
-MAX_BEEP_DURATION = 500 # ms
-
-MAX_SPELL_LENGTH = 50
-
-HTML_CONTAINER_START = '<ul style="list-style: none">'
-HTML_CONTAINER_END = '</ul>'
-HTML_ITEM_START = '<li>'
-HTML_ITEM_END = '</li>'
+SCRIPT_CATEGORY = _('Speech History')
 
 def makeHTMLList(strings):
 	listItems = ''.join((f'{HTML_ITEM_START}{string}{HTML_ITEM_END}' for string in map(nh3.clean_text, strings)))
@@ -68,17 +41,9 @@ def makeHTMLList(strings):
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		confspec = {
-			'maxHistoryLength': f'integer(default={DEFAULT_HISTORY_ENTRIES}, min={MIN_HISTORY_ENTRIES}, max={MAX_HISTORY_ENTRIES})',
-			'postCopyAction': f'string(default={DEFAULT_POST_COPY_ACTION})',
-			'beepFrequency': f'integer(default={DEFAULT_BEEP_FREQUENCY}, min={MIN_BEEP_FREQUENCY}, max={MAX_BEEP_FREQUENCY})',
-			'beepDuration': f'integer(default={DEFAULT_BEEP_DURATION}, min={MIN_BEEP_DURATION}, max={MAX_BEEP_DURATION})',
-			'trimWhitespaceFromStart': 'boolean(default=false)',
-			'trimWhitespaceFromEnd': 'boolean(default=false)',
-		}
 		config.conf.spec[CONFIG_SECTION] = confspec
-		if SpeechHistorySettingsPanel not in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
-			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(SpeechHistorySettingsPanel)
+		if SpeechHistorySettingsPanel not in NVDASettingsDialog.categoryClasses:
+			NVDASettingsDialog.categoryClasses.append(SpeechHistorySettingsPanel)
 
 		self._history = deque(maxlen=config.conf[CONFIG_SECTION]['maxHistoryLength'])
 		self.history_pos = 0
@@ -139,9 +104,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.oldSpeak([_('Already recording speech')])
 			return
 
+		self._recording = True
+		if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
+			tones.beep(1500, 80)
 		# Translators: Message spoken when speech recording is started
 		self.oldSpeak([_('Started recording speech')])
-		self._recording = True
 
 	# Translators: Documentation string for stop recording script
 	@script(description=_('Stop recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -152,6 +119,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		self._recording = False
+		if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
+			tones.beep(800, 80)
 		# Translators: Message spoken when speech recording is stopped
 		self.oldSpeak([_('Recorded speech copied to clipboard')])
 		api.copyToClip('\n'.join(self._recorded))
@@ -255,8 +224,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			speech.speech.speak = self.oldSpeak
 		else:
 			speech.speak = self.oldSpeak
-		if SpeechHistorySettingsPanel in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
-			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
+		if SpeechHistorySettingsPanel in NVDASettingsDialog.categoryClasses:
+			NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
 
 	def append_to_history(self, seq):
 		seq = [command for command in seq if not isinstance(command, FocusLossCancellableSpeechCommand)]
@@ -307,72 +276,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		'kb:NVDA+alt+h': 'copyMostRecentSpeech'
 	}
 
-
-class SpeechHistorySettingsPanel(gui.settingsDialogs.SettingsPanel):
-	# Translators: the label/title for the Speech History settings panel.
-	title = _('Speech History')
-
-	def makeSettings(self, settingsSizer):
-		helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
-
-		# Translators: the label for the preference to choose the maximum number of stored history entries
-		maxHistoryLengthLabelText = _('&Maximum number of history entries (requires NVDA restart to take effect)')
-		self.maxHistoryLengthEdit = helper.addLabeledControl(maxHistoryLengthLabelText, nvdaControls.SelectOnFocusSpinCtrl, min=MIN_HISTORY_ENTRIES, max=MAX_HISTORY_ENTRIES, initial=config.conf[CONFIG_SECTION]['maxHistoryLength'])
-
-		# Translators: The label for the preference of what to do after copying a speech history item to the clipboard. The options are "Do nothing", "Beep", "Speak", or "Beep and speak".
-		postCopyActionComboText = _('&After copying speech:')
-		postCopyActionChoices = [
-			# Translators: A SpeechHistory option to have NVDA do nothing (no beep or speech) after copying a history item.
-			_('Do nothing'),
-			# Translators: A SpeechHistory option to have NVDA beep after copying a history item.
-			_('Beep'),
-			# Translators: A SpeechHistory option to have NVDA speak confirmation after copying a history item.
-			_('Speak'),
-			# Translators: A SpeechHistory option to have NVDA both beep and speak as confirmation after copying a history item.
-			_('Both beep and speak'),
-		]
-		self.postCopyActionValues = (POST_COPY_NOTHING, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH)
-		self.postCopyActionCombo = helper.addLabeledControl(postCopyActionComboText, wx.Choice, choices=postCopyActionChoices)
-		self.postCopyActionCombo.SetSelection(self.postCopyActionValues.index(config.conf[CONFIG_SECTION]['postCopyAction']))
-		self.postCopyActionCombo.defaultValue = self.postCopyActionValues.index(DEFAULT_POST_COPY_ACTION)
-		self.postCopyActionCombo.Bind(wx.EVT_CHOICE, lambda evt: self.refreshUI())
-
-		# Translators: The label for the speech history setting controlling the frequency of the post-copy beep (in Hz).
-		beepFrequencyLabelText = _('Beep &frequency (Hz)')
-		self.beepFrequencyEdit = helper.addLabeledControl(beepFrequencyLabelText, nvdaControls.SelectOnFocusSpinCtrl, min=MIN_BEEP_FREQUENCY, max=MAX_BEEP_FREQUENCY, initial=config.conf[CONFIG_SECTION]['beepFrequency'])
-
-		# Translators: The label for the speech history setting controlling the length of the post-copy beep (in milliseconds).
-		beepDurationLabelText = _('Beep &duration (ms)')
-		self.beepDurationEdit = helper.addLabeledControl(beepDurationLabelText, nvdaControls.SelectOnFocusSpinCtrl, min=MIN_BEEP_DURATION, max=MAX_BEEP_DURATION, initial=config.conf[CONFIG_SECTION]['beepDuration'])
-
-		# Translators: The label of a button in the Speech History settings panel for playing a sample beep to test the user's chosen frequency and duration settings.
-		self.beepButton = helper.addItem(wx.Button(self, label=_('&Play example beep')))
-		self.Bind(wx.EVT_BUTTON, self.onBeepButton, self.beepButton)
-
-		self.refreshUI()
-
-		# Translators: the label for the preference to trim whitespace from the start of text
-		self.trimWhitespaceFromStartCB = helper.addItem(wx.CheckBox(self, label=_('Trim whitespace from &start when copying text')))
-		self.trimWhitespaceFromStartCB.SetValue(config.conf[CONFIG_SECTION]['trimWhitespaceFromStart'])
-
-		# Translators: the label for the preference to trim whitespace from the end of text
-		self.trimWhitespaceFromEndCB = helper.addItem(wx.CheckBox(self, label=_('Trim whitespace from &end when copying text')))
-		self.trimWhitespaceFromEndCB.SetValue(config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd'])
-
-	def refreshUI(self):
-		postCopyAction = self.postCopyActionValues[self.postCopyActionCombo.GetSelection()]
-		enableBeepSettings = postCopyAction in (POST_COPY_BEEP, POST_COPY_BOTH)
-		self.beepFrequencyEdit.Enable(enableBeepSettings)
-		self.beepDurationEdit.Enable(enableBeepSettings)
-		self.beepButton.Enable(enableBeepSettings)
-
-	def onBeepButton(self, event):
-		tones.beep(self.beepFrequencyEdit.GetValue(), self.beepDurationEdit.GetValue())
-
-	def onSave(self):
-		config.conf[CONFIG_SECTION]['maxHistoryLength'] = self.maxHistoryLengthEdit.GetValue()
-		config.conf[CONFIG_SECTION]['postCopyAction'] = self.postCopyActionValues[self.postCopyActionCombo.GetSelection()]
-		config.conf[CONFIG_SECTION]['beepFrequency'] = self.beepFrequencyEdit.GetValue()
-		config.conf[CONFIG_SECTION]['beepDuration'] = self.beepDurationEdit.GetValue()
-		config.conf[CONFIG_SECTION]['trimWhitespaceFromStart'] = self.trimWhitespaceFromStartCB.GetValue()
-		config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd'] = self.trimWhitespaceFromEndCB.GetValue()
