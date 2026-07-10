@@ -101,6 +101,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_startRecording(self, gesture):
 		if self._recording:
 			# Translators: Message spoken when speech recording is already active
+			tones.beep(200, 100)
 			self.oldSpeak([_('Already recording speech')])
 			return
 
@@ -115,6 +116,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_stopRecording(self, gesture):
 		if not self._recording:
 			# Translators: Message spoken when speech recording is not already active
+			tones.beep(200, 100)
 			self.oldSpeak([_('Not currently recording speech')])
 			return
 
