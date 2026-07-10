@@ -19,7 +19,7 @@ from eventHandler import FocusLossCancellableSpeechCommand
 from gui.settingsDialogs import NVDASettingsDialog
 from scriptHandler import script, getLastScriptRepeatCount
 from .settings import SpeechHistorySettingsPanel
-from .constants import (CONFIG_SECTION, POST_COPY_NOTHING, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec)
+from .constants import (CONFIG_SECTION, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec)
 
 try:
 	import nh3
@@ -203,7 +203,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			finally:
 				self.ignore_history = False
 		elif repeat == 2:
-			
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
 			self.oldSpeak(self._history[0])
@@ -219,13 +218,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.copyHistoryItemText(self._history[0])
 
 	def terminate(self, *args, **kwargs):
-		super().terminate(*args, **kwargs)
 		if BUILD_YEAR >= 2021:
 			speech.speech.speak = self.oldSpeak
 		else:
 			speech.speak = self.oldSpeak
 		if SpeechHistorySettingsPanel in NVDASettingsDialog.categoryClasses:
 			NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
+		super().terminate(*args, **kwargs)
 
 	def append_to_history(self, seq):
 		seq = [command for command in seq if not isinstance(command, FocusLossCancellableSpeechCommand)]
