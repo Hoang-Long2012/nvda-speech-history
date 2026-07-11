@@ -393,4 +393,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		'kb:NVDA+x': 'repeatMostRecentSpeech',
 		'kb:NVDA+alt+h': 'copyMostRecentSpeech'
 	}
-
