@@ -35,3 +35,20 @@ confspec = {
 	'trimWhitespaceFromEnd': 'boolean(default=false)',
 	'beep_when_start_or_stop_record': 'boolean(default=True)'
 }
+
+COMMAND_LAYER_GESTURES = {
+	"kb:enter": "copyLast",
+	"kb:downArrow": "nextString",
+	"kb:upArrow": "prevString",
+	"kb:home": "lastString",
+	"kb:end": "beginningString",
+	"kb:h": "showHistory",
+	"kb:shift+h": "copyAllHistory",
+	"kb:control+h": "clearHistory",
+	"kb:alt+h": "copyMostRecentSpeech",
+	"kb:r": "startRecording",
+	"kb:s": "stopRecording",
+	"kb:p": "pauseRecording",
+	"kb:x": "repeatMostRecentSpeech",
+	"kb:/": "speechHistoryCommandLayerHelp",
+}
