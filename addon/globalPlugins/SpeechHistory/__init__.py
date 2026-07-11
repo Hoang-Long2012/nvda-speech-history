@@ -111,7 +111,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Documentation string for start recording script
 	@script(description=_('Start recording NVDA\'s speech output, for copying multiple announcements to the clipboard.'), category=SCRIPT_CATEGORY)
 	def script_startRecording(self, gesture):
-		if self._recording:
+		if self._recording or self._record:
 			# Translators: Message spoken when speech recording is already active
 			tones.beep(200, 100)
 			self.oldSpeak([_('Already recording speech')])
