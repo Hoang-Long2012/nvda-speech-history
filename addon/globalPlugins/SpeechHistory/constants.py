@@ -2,6 +2,7 @@ import config
 import os
 
 CONFIG_SECTION = 'speechHistory'
+logFilePath = os.path.join(config.getInstalledUserConfigPath(), "SpeechHistory.log")
 
 DEFAULT_HISTORY_ENTRIES = 500
 MIN_HISTORY_ENTRIES = 1
@@ -36,8 +37,8 @@ confspec = {
 	'trimWhitespaceFromStart': 'boolean(default=false)',
 	'trimWhitespaceFromEnd': 'boolean(default=false)',
 	'beep_when_start_or_stop_record': 'boolean(default=True)',
-	'write_nvda_speech_output_log_file": 'boolean(default=False)',
-	"nvda_speech_output_log_file': f'string(default={os.path.join(config.confDir, "SpeechHistory.log")})'
+	'write_nvda_speech_output_log_file': 'boolean(default=False)',
+	'nvda_speech_output_log_file': f'string(default={logFilePath})'
 }
 
 COMMAND_LAYER_GESTURES = {

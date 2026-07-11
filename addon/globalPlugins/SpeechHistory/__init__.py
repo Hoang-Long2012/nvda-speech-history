@@ -67,7 +67,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.layer = False
 		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]:
 			try:
-				self.log = open(config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"], "a", encoding="utf_8")
+				self.log = open(config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"], "a", encoding="utf-8")
 			except Exception:
 				self.log = None
 		self._patch()
@@ -363,7 +363,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self._recording:
 			self._recorded.append(self.getTrimmedSequenceText(seq))
 		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"] and self.log:
-			self.log.write(f'{self.getTrimmedSequenceText(seq)}\n")
+			self.log.write(f'{self.getTrimmedSequenceText(seq)}\n')
 
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)
