@@ -294,7 +294,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			script = getattr(self, "script_" + scriptName, None)
 
 			if script:
-				description = script.__doc__ or 
+				description = script.__doc__ or _("No description")
 			else:
 				description = _("No description")
 			lines.append(f"{gestureName[3:].title()}: {description}")
