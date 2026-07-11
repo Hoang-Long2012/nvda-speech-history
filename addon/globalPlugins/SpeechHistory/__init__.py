@@ -24,9 +24,9 @@ from .constants import (CONFIG_SECTION, POST_COPY_BEEP, POST_COPY_SPEAK, POST_CO
 
 try:
 	import nh3
-	BROWSE_MODE_HISTORY_SUPPORTED = True
+	HTML_FORMAT_HISTORY_SUPPORTED = True
 except ImportError:
-	BROWSE_MODE_HISTORY_SUPPORTED = False
+	HTML_FORMAT_HISTORY_SUPPORTED = False
 
 
 addonHandler.initTranslation()
@@ -35,8 +35,11 @@ BUILD_YEAR = getattr(versionInfo, 'version_year', 2021)
 SCRIPT_CATEGORY = _('Speech History')
 
 def makeHTMLList(strings):
-	listItems = '\n'.join((f'{HTML_ITEM_START}{string}{HTML_ITEM_END}' for string in map(nh3.clean_text, strings)))
-	return f'{HTML_CONTAINER_START}\n{listItems}\n{HTML_CONTAINER_END}'
+	if HTML_FORMAT_HISTORY_SUPPORTED:
+		listItems = '\n'.join((f'{HTML_ITEM_START}{string}{HTML_ITEM_END}' for string in map(nh3.clean_text, strings)))
+		return f'{HTML_CONTAINER_START}\n{listItems}\n{HTML_CONTAINER_END}'
+	else:
+		return '\n'.join(strings)
 
 def finally_(func, final):
 	@wraps(func)
@@ -169,25 +172,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	# Translators: Documentation string for show speech history script
 	@script(description=_("Show NVDA's speech history in a browseable list."), category=SCRIPT_CATEGORY)
 	def script_showHistory(self, gesture):
-		if not BROWSE_MODE_HISTORY_SUPPORTED:
-			# Translators: A message shown when users try to view their speech history while running a version of NVDA where this function is not supported.
-			self.oldSpeak([_('Viewing speech history is not supported in this version of NVDA for security reasons.')])
-			return
-		elif not self._history:
+		if not self._history:
 			# Translators: A message shown when users try to view their speech history but it's empty.
 			self.oldSpeak([_('No history items.')])
 			tones.beep(200, 100)
 			return
-		else:
-			message = makeHTMLList((self.getSequenceText(item) for item in self._history))
+
+		if not HTML_FORMAT_HISTORY_SUPPORTED:
+			# Translators: A message shown when HTML formatting is unavailable for speech history.
+			self.oldSpeak([_('Warning: HTML formatting is unavailable. Showing speech history as plain text.')])
+
+		message = makeHTMLList((self.getSequenceText(item) for item in self._history))
 
 		# Translators: The title of the speech history window.
 		title = _('Speech History')
 
 		try:
-			ui.browseableMessage(message=message, title=title, isHtml=True, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
+			# HTML history items are already sanitized above.
+			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
 		except TypeError:
-			ui.browseableMessage(message=message, title=title, isHtml=True, closeButton=True)
+			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, closeButton=True)
 
 	# Translators: Documentation string for copy all speech history script
 	@script(description=_("Copy all NVDA's speech history to clipboard."), category=SCRIPT_CATEGORY)
