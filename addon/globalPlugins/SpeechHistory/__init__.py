@@ -65,6 +65,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._record = False
 		self.ignore_history = False
 		self.layer = False
+		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]:
+			try:
+				self.log = open(config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"], "a", encoding="utf_8")
+			except Exception:
+				self.log = None
 		self._patch()
 
 	def _patch(self):
@@ -327,6 +332,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.bindGestures(self.__gestures)
 
 	def terminate(self, *args, **kwargs):
+		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"] and self.log:
+			self.log.close()
 		if BUILD_YEAR >= 2021:
 			speech.speech.speak = self.oldSpeak
 		else:
@@ -354,7 +361,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._history.appendleft(seq)
 		self.history_pos = 0
 		if self._recording:
-			self._recorded.append(self.getSequenceText(seq))
+			self._recorded.append(self.getTrimmedSequenceText(seq))
+		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"] and self.log:
+			self.log.write(f'{self.getTrimmedSequenceText(seq)}\n")
 
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)

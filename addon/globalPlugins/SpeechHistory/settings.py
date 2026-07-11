@@ -2,6 +2,7 @@ import wx
 import addonHandler
 import config
 import tones
+import os
 from gui import guiHelper, nvdaControls
 from gui.settingsDialogs import SettingsPanel
 from .constants import (CONFIG_SECTION, MIN_HISTORY_ENTRIES, MAX_HISTORY_ENTRIES, POST_COPY_NOTHING, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, DEFAULT_POST_COPY_ACTION, MIN_BEEP_FREQUENCY, MAX_BEEP_FREQUENCY, MIN_BEEP_DURATION, MAX_BEEP_DURATION)
@@ -63,6 +64,22 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		self.beepWhenStartOrStopRecordingCB = helper.addItem(wx.CheckBox(self, label=_('&Beep when start or stop recording speech')))
 		self.beepWhenStartOrStopRecordingCB.SetValue(config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record'])
 
+		# Translators: the label for write the NVDA's speech output go out a log file
+		self.writeSpeechOutputCB = helper.addItem(wx.CheckBox(self, label=_("Write the NVDA's speech output go out a log file")))
+		self.Bind(wx.EVT_CHECKBOX, self.onCheckBox, self.writeSpeechOutputCB)
+		self.writeSpeechOutputCB.SetValue(config.conf[CONFIG_SECTION]['write_nvda_speech_output_log_file'])
+
+		# Translators: the label for the text box to select path for nvda's speech output log file
+		nvdaSpeechOutputFileLabelText = _("NVDA's speech output log file path")
+		self.nvdaSpeechOutputFileEdit = helper.addLabeledControl(nvdaSpeechOutputFileLabelText, wx.TextCtrl)
+		self.nvdaSpeechOutputFileEdit.SetValue(config.conf[CONFIG_SECTION]['nvda_speech_output_log_file'])
+
+		# Translators: the label for browse button to select path for NVDA's speech output
+		self.browseButton = helper.addItem(wx.Button(self, label=_('&Browse...')))
+		self.Bind(wx.EVT_BUTTON, self.onBrowseButton, self.browseButton)
+
+		self.onCheckBox(None)
+
 	def refreshUI(self):
 		postCopyAction = self.postCopyActionValues[self.postCopyActionCombo.GetSelection()]
 		enableBeepSettings = postCopyAction in (POST_COPY_BEEP, POST_COPY_BOTH)
@@ -73,6 +90,17 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 	def onBeepButton(self, event):
 		tones.beep(self.beepFrequencyEdit.GetValue(), self.beepDurationEdit.GetValue())
 
+	def onCheckBox(self, event):
+		status = self.writeSpeechOutputCB.GetValue()
+		self.nvdaSpeechOutputFileEdit.Show(status)
+		self.browseButton.Show(status)
+		self.Layout()
+
+	def onBrowseButton(self, event):
+		with wx.FileDialog(self, _('Save as...'), defaultDir=os.path.dirname(self.nvdaSpeechOutputFileEdit.GetValue()), defaultFile=os.path.basename(self.nvdaSpeechOutputFileEdit.GetValue()), wildcard='Log files (*.log)|*.log|All files (*.*)|*.*', style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dialog:
+			if dialog.ShowModal() == wx.ID_OK:
+				self.nvdaSpeechOutputFileEdit.SetValue(dialog.GetPath())
+
 	def onSave(self):
 		config.conf[CONFIG_SECTION]['maxHistoryLength'] = self.maxHistoryLengthEdit.GetValue()
 		config.conf[CONFIG_SECTION]['postCopyAction'] = self.postCopyActionValues[self.postCopyActionCombo.GetSelection()]
@@ -81,3 +109,5 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		config.conf[CONFIG_SECTION]['trimWhitespaceFromStart'] = self.trimWhitespaceFromStartCB.GetValue()
 		config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd'] = self.trimWhitespaceFromEndCB.GetValue()
 		config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record'] = self.beepWhenStartOrStopRecordingCB.GetValue()
+		config.conf[CONFIG_SECTION]['write_nvda_speech_output_log_file'] = self.writeSpeechOutputCB.GetValue()
+		config.conf[CONFIG_SECTION]['nvda_speech_output_log_file'] = self.nvdaSpeechOutputFileEdit.GetValue()

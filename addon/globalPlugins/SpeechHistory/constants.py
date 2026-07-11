@@ -1,3 +1,5 @@
+import config
+import os
 
 CONFIG_SECTION = 'speechHistory'
 
@@ -33,7 +35,9 @@ confspec = {
 	'beepDuration': f'integer(default={DEFAULT_BEEP_DURATION}, min={MIN_BEEP_DURATION}, max={MAX_BEEP_DURATION})',
 	'trimWhitespaceFromStart': 'boolean(default=false)',
 	'trimWhitespaceFromEnd': 'boolean(default=false)',
-	'beep_when_start_or_stop_record': 'boolean(default=True)'
+	'beep_when_start_or_stop_record': 'boolean(default=True)',
+	'write_nvda_speech_output_log_file": 'boolean(default=False)',
+	"nvda_speech_output_log_file': f'string(default={os.path.join(config.confDir, "SpeechHistory.log")})'
 }
 
 COMMAND_LAYER_GESTURES = {
