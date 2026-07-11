@@ -160,7 +160,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				tones.beep(800, 80)
 
 			# Translators: Message spoken when speech recording is paused
-			self.oldSpeak([_('Paursed recording speech')])
+			self.oldSpeak([_('Paused recording speech')])
 		else:
 			self._recording = True
 			if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
@@ -191,7 +191,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# HTML history items are already sanitized above.
 			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
 		except TypeError:
-			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, closeButton=True)
+			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, copyButton=True, closeButton=True)
 
 	# Translators: Documentation string for copy all speech history script
 	@script(description=_("Copy all NVDA's speech history to clipboard."), category=SCRIPT_CATEGORY)
@@ -241,8 +241,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if len(text) > MAX_SPELL_LENGTH:
 				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
 				return
-			self.ignore_history = True
 			try:
+				self.ignore_history = True
 				speech.speakSpelling(text)
 			finally:
 				self.ignore_history = False
@@ -294,7 +294,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			script = getattr(self, "script_" + scriptName, None)
 
 			if script:
-				description = script.__doc__ or _("No description")
+				description = script.__doc__ or 
+			else:
+				description = _("No description")
 			lines.append(f"{gestureName[3:].title()}: {description}")
 		lines.append(_('Escape: Exit command layer.'))
 
@@ -317,6 +319,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		tones.beep(200, 100)
 
 	def finish(self):
+		if not self.layer:
+			return
+
 		self.layer = False
 		self.clearGestureBindings()
 		self.bindGestures(self.__gestures)
