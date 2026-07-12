@@ -86,12 +86,12 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		self.trimWhitespaceFromEndCB.SetValue(config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd'])
 
 		# Translators: the label for write the NVDA's speech output go out a log file
-		self.writeSpeechOutputCB = loggingHelper.addItem(wx.CheckBox(self, label=_("Write the NVDA's speech output go out a log file")))
+		self.writeSpeechOutputCB = loggingHelper.addItem(wx.CheckBox(self, label=_("&Write the NVDA's speech output go out a log file")))
 		self.Bind(wx.EVT_CHECKBOX, self.onCheckBox, self.writeSpeechOutputCB)
 		self.writeSpeechOutputCB.SetValue(config.conf[CONFIG_SECTION]['write_nvda_speech_output_log_file'])
 
 		# Translators: the label for the text box to select path for nvda's speech output log file
-		nvdaSpeechOutputFileLabelText = _("NVDA's speech output log file path")
+		nvdaSpeechOutputFileLabelText = _("NVDA's speech &output log file path")
 		self.nvdaSpeechOutputFileEdit = pathHelper.addLabeledControl(nvdaSpeechOutputFileLabelText, wx.TextCtrl)
 		self.nvdaSpeechOutputFileEdit.SetValue(config.conf[CONFIG_SECTION]['nvda_speech_output_log_file'])
 
@@ -100,7 +100,7 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		self.Bind(wx.EVT_BUTTON, self.onBrowseButton, self.browseButton)
 
 		# Translators: the label for a checkbox  to decide whether or not to add the current time to NVDA's speech output log file
-		self.addCurrentTimeCB = loggingHelper.addItem(wx.CheckBox(self, label=_("Add current time to NVDA's speech output log file")))
+		self.addCurrentTimeCB = loggingHelper.addItem(wx.CheckBox(self, label=_("Add current &time to NVDA's speech output log file")))
 		self.addCurrentTimeCB.SetValue(config.conf[CONFIG_SECTION]['add_current_time_to_nvda_speech_output_log_file'])
 
 		self.onCheckBox(None)
