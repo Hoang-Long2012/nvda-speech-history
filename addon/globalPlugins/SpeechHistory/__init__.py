@@ -5,6 +5,9 @@
 # See the file LICENSE for more details.
 
 from collections import deque
+from contextlib import contextmanager
+from functools import wraps
+from datetime import datetime
 import addonHandler
 import api
 import config
@@ -19,8 +22,6 @@ from eventHandler import FocusLossCancellableSpeechCommand
 from gui.settingsDialogs import NVDASettingsDialog
 from scriptHandler import script, getLastScriptRepeatCount
 from logHandler import log
-from functools import wraps
-from datetime import datetime
 from .settings import SpeechHistorySettingsPanel
 from .constants import (CONFIG_SECTION, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec, COMMAND_LAYER_GESTURES)
 
@@ -65,12 +66,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._recorded = []
 		self._recording = False
 		self._record = False
-		self.ignore_history = False
+		self.ignore_history = 0
 		self.layer = False
 		self.log = None
 		self.logPath = None
 		self.updateLogFile()
-		self._patch()
+		self._initSpeechCapture()
+
+	def _initSpeechCapture(self):
+		if BUILD_YEAR >= 2025 and hasattr(speech, "pre_speechQueued"):
+			speech.pre_speechQueued.register(self._onSpeechQueued)
+			self.oldSpeak = speech.speech.speak
+			self._usingSpeechExtensionPoint = True
+		else:
+			self._usingSpeechExtensionPoint = False
+			self._patch()
 
 	def _patch(self):
 		if BUILD_YEAR >= 2021:
@@ -84,7 +94,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_('Copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA.'), category=SCRIPT_CATEGORY)
 	def script_copyLast(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 		self.copyHistoryItemText(self._history[self.history_pos])
@@ -93,20 +103,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_('Review the previous item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_prevString(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 		self.history_pos += 1
 		if self.history_pos > len(self._history) - 1:
 			tones.beep(200, 100)
 			self.history_pos -= 1
-		self.oldSpeak(self._history[self.history_pos])
+		self.speak(self._history[self.history_pos])
 
 	# Translators: Documentation string for next speech history item script
 	@script(description=_('Review the next item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_nextString(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 		self.history_pos -= 1
@@ -114,7 +124,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			tones.beep(200, 100)
 			self.history_pos += 1
 
-		self.oldSpeak(self._history[self.history_pos])
+		self.speak(self._history[self.history_pos])
 
 	# Translators: Documentation string for start recording script
 	@script(description=_('Start recording NVDA\'s speech output, for copying multiple announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -122,7 +132,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self._recording or self._record:
 			# Translators: Message spoken when speech recording is already active
 			tones.beep(200, 100)
-			self.oldSpeak([_('Already recording speech')])
+			self.speak([_('Already recording speech')])
 			return
 
 		self._recording = True
@@ -130,7 +140,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
 			tones.beep(1500, 80)
 		# Translators: Message spoken when speech recording is started
-		self.oldSpeak([_('Started recording speech')])
+		self.speak([_('Started recording speech')])
 
 	# Translators: Documentation string for stop recording script
 	@script(description=_('Stop recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -138,7 +148,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self._recording:
 			# Translators: Message spoken when speech recording is not already active
 			tones.beep(200, 100)
-			self.oldSpeak([_('Not currently recording speech')])
+			self.speak([_('Not currently recording speech')])
 			return
 
 		self._recording = False
@@ -146,7 +156,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
 			tones.beep(800, 80)
 		# Translators: Message spoken when speech recording is stopped
-		self.oldSpeak([_('Recorded speech copied to clipboard')])
+		self.speak([_('Recorded speech copied to clipboard')])
 		api.copyToClip('\n'.join(self._recorded))
 		self._recorded.clear()
 
@@ -155,7 +165,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_pauseRecording(self, gesture):
 		if not self._record:
 			# Translators: Message spoken when not recording speech
-			self.oldSpeak([_('Not currently recording speech')])
+			self.speak([_('Not currently recording speech')])
 			tones.beep(200, 100)
 			return
 
@@ -165,27 +175,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				tones.beep(800, 80)
 
 			# Translators: Message spoken when speech recording is paused
-			self.oldSpeak([_('Paused recording speech')])
+			self.speak([_('Paused recording speech')])
 		else:
 			self._recording = True
 			if config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record']:
 				tones.beep(1500, 80)
 
 			# Translators: Message spoken when speech recording is restarted
-			self.oldSpeak([_('Recording speech restarted')])
+			self.speak([_('Recording speech restarted')])
 
 	# Translators: Documentation string for show speech history script
 	@script(description=_("Show NVDA's speech history in a browseable list."), category=SCRIPT_CATEGORY)
 	def script_showHistory(self, gesture):
 		if not self._history:
 			# Translators: A message shown when users try to view their speech history but it's empty.
-			self.oldSpeak([_('No history items.')])
+			self.speak([_('No history items.')])
 			tones.beep(200, 100)
 			return
 
 		if not HTML_FORMAT_HISTORY_SUPPORTED:
 			# Translators: A message shown when HTML formatting is unavailable for speech history.
-			self.oldSpeak([_('Warning: HTML formatting is unavailable. Showing speech history as plain text.')])
+			self.speak([_('Warning: HTML formatting is unavailable. Showing speech history as plain text.')])
 
 		message = makeHTMLList((self.getSequenceText(item) for item in self._history))
 
@@ -202,7 +212,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_("Copy all NVDA's speech history to clipboard."), category=SCRIPT_CATEGORY)
 	def script_copyAllHistory(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 		sentences = []
@@ -216,24 +226,24 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				tones.beep(config.conf[CONFIG_SECTION]['beepFrequency'], config.conf[CONFIG_SECTION]['beepDuration'])
 			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
 				# Translators: A short confirmation message spoken after copying a speech history item.
-				self.oldSpeak([_('All history copied')])
+				self.speak([_('All history copied')])
 
 	# Translators: Documentation string for clear all speech history script
 	@script(description=_("Clear all NVDA's speech history."), category=SCRIPT_CATEGORY)
 	def script_clearHistory(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 		self._history.clear()
 		self.history_pos = 0
-		self.oldSpeak([_('History cleared')])
+		self.speak([_('History cleared')])
 
 	# Translators: Documentation string for Repeat what NVDA just said script
 	@script(description=_("Press once to repeat what NVDA just said, double to spell and triple to show in a browseable dialog."), category=SCRIPT_CATEGORY)
 	def script_repeatMostRecentSpeech(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 
@@ -241,26 +251,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if repeat == 1:
 			text = self.getTrimmedSequenceText(self._history[0])
 			if not text:
-				self.oldSpeak([_("No text to spell")])
+				self.speak([_("No text to spell")])
 				return
 			if len(text) > MAX_SPELL_LENGTH:
-				self.oldSpeak([_('The text is too long. It contains {} characters.').format(len(text))])
+				self.speak([_('The text is too long. It contains {} characters.').format(len(text))])
 				return
-			try:
-				self.ignore_history = True
+			with self.suppressHistory():
 				speech.speakSpelling(text)
-			finally:
-				self.ignore_history = False
 		elif repeat == 2:
 			ui.browseableMessage(message=self.getTrimmedSequenceText(self._history[0]), copyButton=True, closeButton=True)
 		else:
-			self.oldSpeak(self._history[0])
+			self.speak(self._history[0])
 
 	# Translators: Documentation string for copy  most recently NVDA's speech to clipboard script
 	@script(description=_("Copy most recently NVDA's speech to clipboard."), category=SCRIPT_CATEGORY)
 	def script_copyMostRecentSpeech(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 
@@ -270,24 +277,24 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_('Review the beginning item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_beginningString(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 
 		self.history_pos = 0
-		self.oldSpeak(self._history[self.history_pos])
+		self.speak(self._history[self.history_pos])
 		tones.beep(200, 100)
 
 	# Translators: Documentation string for move to last speech history item script
 	@script(description=_('Review the last item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_lastString(self, gesture):
 		if not self._history:
-			self.oldSpeak([_("No history items")])
+			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
 
 		self.history_pos = len(self._history) - 1
-		self.oldSpeak(self._history[self.history_pos])
+		self.speak(self._history[self.history_pos])
 		tones.beep(200, 100)
 
 	# Translators: Document string for Speech History command layer help script
@@ -336,10 +343,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.log.close()
 			self.log = None
 			self.logPath = None
-		if BUILD_YEAR >= 2021:
-			speech.speech.speak = self.oldSpeak
+		if self._usingSpeechExtensionPoint:
+			speech.pre_speechQueued.unregister(self._onSpeechQueued)
 		else:
-			speech.speak = self.oldSpeak
+			if BUILD_YEAR >= 2021:
+				speech.speech.speak = self.oldSpeak
+			else:
+				speech.speak = self.oldSpeak
 		if SpeechHistorySettingsPanel in NVDASettingsDialog.categoryClasses:
 			NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
 		super().terminate(*args, **kwargs)
@@ -367,12 +377,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]:
 			self.updateLogFile(f'{self.getTrimmedSequenceText(seq)}\n')
 
+	def _onSpeechQueued(self, speechSequence, priority, *args, **kwargs):
+		if self.ignore_history:
+			return
+
+		text = self.getSequenceText(speechSequence)
+		if text.strip():
+			queueFunction(eventQueue, self.append_to_history, speechSequence)
+
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)
-		if not self.ignore_history:
-			text = self.getSequenceText(sequence)
-			if text.strip():
-				queueFunction(eventQueue, self.append_to_history, sequence)
+		if self.ignore_history:
+			return
+		text = self.getSequenceText(sequence)
+		if text.strip():
+			queueFunction(eventQueue, self.append_to_history, sequence)
 
 	def getSequenceText(self, sequence):
 		return speechViewer.SPEECH_ITEM_SEPARATOR.join([x for x in sequence if isinstance(x, str)])
@@ -385,6 +404,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			text = text.rstrip()
 		return text
 
+	@contextmanager
+	def suppressHistory(self):
+		self.ignore_history += 1
+		try:
+			yield
+		finally:
+			self.ignore_history -= 1
+
+	def speak(self, sequence, *args, **kwargs):
+		with self.suppressHistory():
+			self.oldSpeak(sequence, *args, **kwargs)
+
 	def copyHistoryItemText(self, item):
 		text = self.getTrimmedSequenceText(item)
 
@@ -394,7 +425,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				tones.beep(config.conf[CONFIG_SECTION]['beepFrequency'], config.conf[CONFIG_SECTION]['beepDuration'])
 			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
 				# Translators: A short confirmation message spoken after copying a speech history item.
-				self.oldSpeak([_('Copied')])
+				self.speak([_('Copied')])
 
 	def updateLogFile(self, text=None):
 		enabled = config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]
