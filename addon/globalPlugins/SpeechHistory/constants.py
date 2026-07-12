@@ -44,10 +44,10 @@ confspec = {
 
 COMMAND_LAYER_GESTURES = {
 	"kb:enter": "copyLast",
-	"kb:downArrow": "nextString",
-	"kb:upArrow": "prevString",
-	"kb:home": "lastString",
-	"kb:end": "beginningString",
+	"kb:upArrow": "nextString",
+	"kb:downArrow": "prevString",
+	"kb:end": "lastString",
+	"kb:home": "beginningString",
 	"kb:h": "showHistory",
 	"kb:shift+h": "copyAllHistory",
 	"kb:control+h": "clearHistory",
