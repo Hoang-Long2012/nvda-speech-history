@@ -18,6 +18,7 @@ from queueHandler import queueFunction, eventQueue
 from eventHandler import FocusLossCancellableSpeechCommand
 from gui.settingsDialogs import NVDASettingsDialog
 from scriptHandler import script, getLastScriptRepeatCount
+from logHandler import log
 from functools import wraps
 from .settings import SpeechHistorySettingsPanel
 from .constants import (CONFIG_SECTION, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec, COMMAND_LAYER_GESTURES)
@@ -65,11 +66,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._record = False
 		self.ignore_history = False
 		self.layer = False
-		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]:
-			try:
-				self.log = open(config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"], "a", encoding="utf-8")
-			except Exception:
-				self.log = None
+		self.log = None
+		self.logPath = None
+		self.updateLogFile()
 		self._patch()
 
 	def _patch(self):
@@ -332,8 +331,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.bindGestures(self.__gestures)
 
 	def terminate(self, *args, **kwargs):
-		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"] and self.log:
+		if self.log:
 			self.log.close()
+			self.log = None
+			self.logPath = None
 		if BUILD_YEAR >= 2021:
 			speech.speech.speak = self.oldSpeak
 		else:
@@ -362,8 +363,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.history_pos = 0
 		if self._recording:
 			self._recorded.append(self.getTrimmedSequenceText(seq))
-		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"] and self.log:
-			self.log.write(f'{self.getTrimmedSequenceText(seq)}\n')
+		if config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]:
+			self.updateLogFile(f'{self.getTrimmedSequenceText(seq)}\n')
 
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)
@@ -393,6 +394,32 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
 				# Translators: A short confirmation message spoken after copying a speech history item.
 				self.oldSpeak([_('Copied')])
+
+	def updateLogFile(self, text=None):
+		enabled = config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]
+		path = config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"]
+
+		if enabled:
+			if self.log is None or self.logPath != path:
+				if self.log:
+					self.log.close()
+					self.log = None
+					self.logPath = None
+				try:
+					self.log = open(config.conf[CONFIG_SECTION]["nvda_speech_output_log_file"], "a", encoding="utf-8")
+					self.logPath = path
+				except Exception:
+					log.exception("Cannot open speech output log")
+					self.log = None
+					self.logPath = None
+			if text and self.log:
+				self.log.write(text)
+				self.log.flush()
+		else:
+			if self.log:
+				self.log.close()
+				self.log = None
+				self.logPath = None
 
 	__gestures = {
 		'kb:f12': 'copyLast',
