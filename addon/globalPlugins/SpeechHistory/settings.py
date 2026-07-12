@@ -78,6 +78,10 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		self.browseButton = helper.addItem(wx.Button(self, label=_('&Browse...')))
 		self.Bind(wx.EVT_BUTTON, self.onBrowseButton, self.browseButton)
 
+		# Translators: the label for a checkbox  to decide whether or not to add the current time to NVDA's speech output log file
+		self.addCurrentTimeCB = helper.addItem(wx.CheckBox(self, label=_("Add current time to NVDA's speech output log file")))
+		self.addCurrentTimeCB.SetValue(config.conf[CONFIG_SECTION]['add_current_time_to_nvda_speech_output_log_file'])
+
 		self.onCheckBox(None)
 
 	def refreshUI(self):
@@ -92,8 +96,10 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 
 	def onCheckBox(self, event):
 		status = self.writeSpeechOutputCB.GetValue()
+
 		self.nvdaSpeechOutputFileEdit.Show(status)
 		self.browseButton.Show(status)
+		self.addCurrentTimeCB.Show(status)
 		self.Layout()
 
 	def onBrowseButton(self, event):
@@ -111,3 +117,4 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record'] = self.beepWhenStartOrStopRecordingCB.GetValue()
 		config.conf[CONFIG_SECTION]['write_nvda_speech_output_log_file'] = self.writeSpeechOutputCB.GetValue()
 		config.conf[CONFIG_SECTION]['nvda_speech_output_log_file'] = self.nvdaSpeechOutputFileEdit.GetValue()
+		config.conf[CONFIG_SECTION]['add_current_time_to_nvda_speech_output_log_file'] = self.addCurrentTimeCB.GetValue()

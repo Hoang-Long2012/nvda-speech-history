@@ -38,7 +38,8 @@ confspec = {
 	'trimWhitespaceFromEnd': 'boolean(default=false)',
 	'beep_when_start_or_stop_record': 'boolean(default=True)',
 	'write_nvda_speech_output_log_file': 'boolean(default=False)',
-	'nvda_speech_output_log_file': f'string(default={DEFAULT_LOG_FILE_PATH})'
+	'nvda_speech_output_log_file': f'string(default={DEFAULT_LOG_FILE_PATH})',
+	'add_current_time_to_nvda_speech_output_log_file': 'boolean(default=False)'
 }
 
 COMMAND_LAYER_GESTURES = {

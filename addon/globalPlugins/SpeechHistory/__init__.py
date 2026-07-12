@@ -20,6 +20,7 @@ from gui.settingsDialogs import NVDASettingsDialog
 from scriptHandler import script, getLastScriptRepeatCount
 from logHandler import log
 from functools import wraps
+from datetime import datetime
 from .settings import SpeechHistorySettingsPanel
 from .constants import (CONFIG_SECTION, POST_COPY_BEEP, POST_COPY_SPEAK, POST_COPY_BOTH, MAX_SPELL_LENGTH, HTML_CONTAINER_START, HTML_CONTAINER_END, HTML_ITEM_START, HTML_ITEM_END, confspec, COMMAND_LAYER_GESTURES)
 
@@ -413,7 +414,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					self.log = None
 					self.logPath = None
 			if text and self.log:
-				self.log.write(text)
+				if config.conf[CONFIG_SECTION]["add_current_time_to_nvda_speech_output_log_file"]:
+					now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+					string = '{now} - {text}'
+				else:
+					string = text
+				self.log.write(string)
 				self.log.flush()
 		else:
 			if self.log:
