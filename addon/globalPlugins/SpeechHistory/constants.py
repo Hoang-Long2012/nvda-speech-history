@@ -34,9 +34,10 @@ confspec = {
 	'postCopyAction': f'string(default={DEFAULT_POST_COPY_ACTION})',
 	'beepFrequency': f'integer(default={DEFAULT_BEEP_FREQUENCY}, min={MIN_BEEP_FREQUENCY}, max={MAX_BEEP_FREQUENCY})',
 	'beepDuration': f'integer(default={DEFAULT_BEEP_DURATION}, min={MIN_BEEP_DURATION}, max={MAX_BEEP_DURATION})',
+	'beep_when_start_or_stop_record': 'boolean(default=True)',
+	'move_cursor_to_last_item_after_copy': 'boolean(default=False)',
 	'trimWhitespaceFromStart': 'boolean(default=false)',
 	'trimWhitespaceFromEnd': 'boolean(default=false)',
-	'beep_when_start_or_stop_record': 'boolean(default=True)',
 	'write_nvda_speech_output_log_file': 'boolean(default=False)',
 	'nvda_speech_output_log_file': f'string(default={DEFAULT_LOG_FILE_PATH})',
 	'add_current_time_to_nvda_speech_output_log_file': 'boolean(default=False)'

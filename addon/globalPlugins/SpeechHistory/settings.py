@@ -77,6 +77,10 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 
 		self.refreshUI()
 
+		# Translators: The label for the preference to move cursor to last history item after copy
+		self.moveCursorToLastItemCB = behaviorHelper.addItem(wx.CheckBox(self, label=_('Move cursor to last history item after copy')))
+		self.moveCursorToLastItemCB.SetValue(config.conf[CONFIG_SECTION]['move_cursor_to_last_item_after_copy'])
+
 		# Translators: the label for the preference to trim whitespace from the start of text
 		self.trimWhitespaceFromStartCB = behaviorHelper.addItem(wx.CheckBox(self, label=_('Trim whitespace from &start when copying text')))
 		self.trimWhitespaceFromStartCB.SetValue(config.conf[CONFIG_SECTION]['trimWhitespaceFromStart'])
@@ -135,6 +139,7 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		config.conf[CONFIG_SECTION]['beepFrequency'] = self.beepFrequencyEdit.GetValue()
 		config.conf[CONFIG_SECTION]['beepDuration'] = self.beepDurationEdit.GetValue()
 		config.conf[CONFIG_SECTION]['beep_when_start_or_stop_record'] = self.beepWhenStartOrStopRecordingCB.GetValue()
+		config.conf[CONFIG_SECTION]['move_cursor_to_last_item_after_copy'} = self.moveCursorToLastItemCB.GetValue()
 		config.conf[CONFIG_SECTION]['trimWhitespaceFromStart'] = self.trimWhitespaceFromStartCB.GetValue()
 		config.conf[CONFIG_SECTION]['trimWhitespaceFromEnd'] = self.trimWhitespaceFromEndCB.GetValue()
 		config.conf[CONFIG_SECTION]['write_nvda_speech_output_log_file'] = self.writeSpeechOutputCB.GetValue()

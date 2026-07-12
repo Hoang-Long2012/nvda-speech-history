@@ -435,6 +435,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if postCopyAction in (POST_COPY_SPEAK, POST_COPY_BOTH):
 				# Translators: A short confirmation message spoken after copying a speech history item.
 				self.speak([_('Copied')])
+			if config.conf[CONFIG_SECTION]['move_cursor_to_last_item_after_copy']:
+				self.history_pos = 0
 
 	def updateLogFile(self, text=None):
 		enabled = config.conf[CONFIG_SECTION]["write_nvda_speech_output_log_file"]
