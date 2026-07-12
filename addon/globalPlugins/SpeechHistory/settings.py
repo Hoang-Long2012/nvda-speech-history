@@ -103,7 +103,7 @@ class SpeechHistorySettingsPanel(SettingsPanel):
 		self.Layout()
 
 	def onBrowseButton(self, event):
-		with wx.FileDialog(self, _('Save as...'), defaultDir=os.path.dirname(self.nvdaSpeechOutputFileEdit.GetValue()), defaultFile=os.path.basename(self.nvdaSpeechOutputFileEdit.GetValue()), wildcard='Log files (*.log)|*.log|All files (*.*)|*.*', style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dialog:
+		with wx.FileDialog(self, _('Save as...'), defaultDir=os.path.dirname(self.nvdaSpeechOutputFileEdit.GetValue()), defaultFile=os.path.basename(self.nvdaSpeechOutputFileEdit.GetValue()), wildcard='Log files (*.log)|*.log|Text files (*.txt)|*.txt|All files (*.*)|*.*', style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dialog:
 			if dialog.ShowModal() == wx.ID_OK:
 				self.nvdaSpeechOutputFileEdit.SetValue(dialog.GetPath())
 

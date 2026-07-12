@@ -416,7 +416,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if text and self.log:
 				if config.conf[CONFIG_SECTION]["add_current_time_to_nvda_speech_output_log_file"]:
 					now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-					string = '{now} - {text}'
+					string = f'{now} - {text}'
 				else:
 					string = text
 				self.log.write(string)
