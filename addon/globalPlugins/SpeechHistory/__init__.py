@@ -91,13 +91,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			speech.speak = self.mySpeak
 
 	# Translators: Documentation string for copy currently selected speech history item script
-	@script(description=_('Copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA.'), category=SCRIPT_CATEGORY)
+	@script(description=_('Press once to copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA. Double press to copy the currently selected speech history item to the clipboard with whitespaces is trim.'), category=SCRIPT_CATEGORY)
 	def script_copyLast(self, gesture):
 		if not self._history:
 			self.speak([_("No history items")])
 			tones.beep(200, 100)
 			return
-		self.copyHistoryItemText(self._history[self.history_pos])
+		repeat = getLastScriptRepeatCount()
+		trim = None
+		if repeat == 1:
+			trim = True
+		else:
+			trim = False
+		self.copyHistoryItemText(self._history[self.history_pos], trim)
 
 	# Translators: Documentation string for previous speech history item script
 	@script(description=_('Review the previous item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
@@ -396,12 +402,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def getSequenceText(self, sequence):
 		return speechViewer.SPEECH_ITEM_SEPARATOR.join([x for x in sequence if isinstance(x, str)])
 
-	def getTrimmedSequenceText(self, sequence):
+	def getTrimmedSequenceText(self, sequence, trim=None):
 		text = self.getSequenceText(sequence)
-		if config.conf[CONFIG_SECTION]["trimWhitespaceFromStart"]:
-			text = text.lstrip()
-		if config.conf[CONFIG_SECTION]["trimWhitespaceFromEnd"]:
-			text = text.rstrip()
+		if not trim:
+			if config.conf[CONFIG_SECTION]["trimWhitespaceFromStart"]:
+				text = text.lstrip()
+			if config.conf[CONFIG_SECTION]["trimWhitespaceFromEnd"]:
+				text = text.rstrip()
+		else:
+			text = text.strip()
 		return text
 
 	@contextmanager
@@ -416,8 +425,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		with self.suppressHistory():
 			self.oldSpeak(sequence, *args, **kwargs)
 
-	def copyHistoryItemText(self, item):
-		text = self.getTrimmedSequenceText(item)
+	def copyHistoryItemText(self, item, trim=None):
+		text = self.getTrimmedSequenceText(item, trim=trim)
 
 		postCopyAction = config.conf[CONFIG_SECTION]['postCopyAction']
 		if api.copyToClip(text):
