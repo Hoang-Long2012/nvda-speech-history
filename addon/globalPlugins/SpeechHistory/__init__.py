@@ -16,7 +16,6 @@ import speech
 import speechViewer
 import tones
 import ui
-import versionInfo
 from queueHandler import queueFunction, eventQueue
 from eventHandler import FocusLossCancellableSpeechCommand
 from gui.settingsDialogs import NVDASettingsDialog
@@ -34,7 +33,6 @@ except ImportError:
 
 addonHandler.initTranslation()
 
-BUILD_YEAR = getattr(versionInfo, 'version_year', 2021)
 SCRIPT_CATEGORY = _('Speech History')
 
 def makeHTMLList(strings):
@@ -74,21 +72,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._initSpeechCapture()
 
 	def _initSpeechCapture(self):
-		if BUILD_YEAR >= 2025 and hasattr(speech, "pre_speechQueued"):
+		if hasattr(speech, "pre_speechQueued"):
 			speech.pre_speechQueued.register(self._onSpeechQueued)
 			self.oldSpeak = speech.speech.speak
-			self._usingSpeechExtensionPoint = True
-		else:
-			self._usingSpeechExtensionPoint = False
-			self._patch()
-
-	def _patch(self):
-		if BUILD_YEAR >= 2021:
-			self.oldSpeak = speech.speech.speak
-			speech.speech.speak = self.mySpeak
-		else:
+		elif hasattr(speech, 'speak'):
 			self.oldSpeak = speech.speak
 			speech.speak = self.mySpeak
+		elif hasatt(speech.speech, 'speak'):
+			self.oldSpeak = speech.speech.speak
+			speech.speech.speak = self.mySpeak
 
 	# Translators: Documentation string for copy currently selected speech history item script
 	@script(description=_('Press once to copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA. Double press to copy the currently selected speech history item to the clipboard with whitespaces is trim.'), category=SCRIPT_CATEGORY)
@@ -360,15 +352,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.log.close()
 			self.log = None
 			self.logPath = None
-		if self._usingSpeechExtensionPoint:
+if hasattr(speech, "pre_speechQueued"):
 			speech.pre_speechQueued.unregister(self._onSpeechQueued)
-		else:
-			if BUILD_YEAR >= 2021:
-				speech.speech.speak = self.oldSpeak
-			else:
-				speech.speak = self.oldSpeak
+		elif hasattr(speech, 'speak'):
+			speech.speak = self.oldSpeak
+		elif hasatt(speech.speech, 'speak'):
+			speech.speech.speak = self.oldSpeak
+
 		if SpeechHistorySettingsPanel in NVDASettingsDialog.categoryClasses:
 			NVDASettingsDialog.categoryClasses.remove(SpeechHistorySettingsPanel)
+
 		super().terminate(*args, **kwargs)
 
 	def getScript(self, gesture):
