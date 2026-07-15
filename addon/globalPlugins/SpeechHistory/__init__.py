@@ -147,6 +147,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			tones.beep(1500, 80)
 		# Translators: Message spoken when speech recording is started
 		self.speak([_('Started recording speech')])
+	script_startRecording.exit_on_press = True
 
 	# Translators: Documentation string for stop recording script
 	@script(description=_('Stop recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -165,6 +166,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.speak([_('Recorded speech copied to clipboard')])
 		api.copyToClip('\n'.join(self._recorded))
 		self._recorded.clear()
+	script_stopRecording.exit_on_press = True
 
 	# Translators: Documentation string for pause recording script
 	@script(description=_('Pause recording NVDA\'s speech output, and copy the recorded announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -189,6 +191,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			# Translators: Message spoken when speech recording is restarted
 			self.speak([_('Recording speech restarted')])
+	script_pauseRecording.exit_on_press = True
 
 	# Translators: Documentation string for show speech history script
 	@script(description=_("Show NVDA's speech history in a browseable list."), category=SCRIPT_CATEGORY)
@@ -213,6 +216,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, copyButton=True, closeButton=True, sanitizeHtmlFunc=lambda string: string)
 		except TypeError:
 			ui.browseableMessage(message=message, title=title, isHtml=HTML_FORMAT_HISTORY_SUPPORTED, copyButton=True, closeButton=True)
+	script_showHistory.exit_on_press = True
 
 	# Translators: Documentation string for copy all speech history script
 	@script(description=_("Copy all NVDA's speech history to clipboard."), category=SCRIPT_CATEGORY)
@@ -316,11 +320,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			else:
 				description = _("No description")
 			lines.append(f"{gestureName[3:].title()}: {description}")
-		lines.append(_('Escape: Exit command layer.'))
 
 		message = "\n".join(lines)
 
 		ui.browseableMessage(message=message, title=_("Speech History command layer help"), copyButton=True, closeButton=True)
+	script_speechHistoryCommandLayerHelp.exit_on_press = True
 
 	# Translators: Document string for Speech History command layer script
 	@script(description=_('Activate Speech History command layer.'), category=SCRIPT_CATEGORY)
@@ -333,7 +337,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.bindGestures(COMMAND_LAYER_GESTURES)
 		tones.beep(400, 100)
 
+	def script_exitCommandLayer(self, gesture):
+		"""Exit the command layer."""
+		self.speak([_('Canceled')])
+		tones.beep(200, 100)
+	script_exitCommandLayer.exit_on_press = True
+
 	def script_commandLayerError(self, gesture):
+		self.speak([_('Unknown key: {}').format(gesture.mainKeyName)])
 		tones.beep(200, 100)
 
 	def finish(self):
@@ -369,7 +380,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not script:
 			return finally_(self.script_commandLayerError, self.finish)
 
-		if script.__name__ in ("script_prevString", "script_nextString", "script_beginningString", "script_lastString"):
+		if not script.exit_on_press:
 			return script
 
 		return finally_(script, self.finish)

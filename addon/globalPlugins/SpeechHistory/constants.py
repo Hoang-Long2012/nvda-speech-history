@@ -44,11 +44,15 @@ confspec = {
 }
 
 COMMAND_LAYER_GESTURES = {
-	"kb:enter": "copyLast",
 	"kb:upArrow": "nextString",
 	"kb:downArrow": "prevString",
-	"kb:end": "lastString",
 	"kb:home": "beginningString",
+	"kb:end": "lastString",
+	"kb:enter": "copyLast",
+	"kb:control+c": "copyLast",
+	"kb:control+shift+c": "copyAllHistory",
+	"kb:control+delete": "clearHistory",
+	"kb:alt+x": "copyMostRecentSpeech",
 	"kb:h": "showHistory",
 	"kb:shift+h": "copyAllHistory",
 	"kb:control+h": "clearHistory",
@@ -58,4 +62,5 @@ COMMAND_LAYER_GESTURES = {
 	"kb:p": "pauseRecording",
 	"kb:x": "repeatMostRecentSpeech",
 	"kb:/": "speechHistoryCommandLayerHelp",
+	"kb:escape": "exitCommandLayer"
 }
