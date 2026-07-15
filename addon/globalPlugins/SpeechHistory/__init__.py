@@ -78,9 +78,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		elif hasattr(speech, 'speak'):
 			self.oldSpeak = speech.speak
 			speech.speak = self.mySpeak
-		elif hasatt(speech.speech, 'speak'):
+		elif hasattr(speech.speech, 'speak'):
 			self.oldSpeak = speech.speech.speak
 			speech.speech.speak = self.mySpeak
+		else:
+			log.error('Speech history not supported')
+			ui.message(_('Speech history not supported'))
 
 	# Translators: Documentation string for copy currently selected speech history item script
 	@script(description=_('Press once to copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA. Double press to copy the currently selected speech history item to the clipboard with whitespaces is trim.'), category=SCRIPT_CATEGORY)
@@ -352,11 +355,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.log.close()
 			self.log = None
 			self.logPath = None
+
 if hasattr(speech, "pre_speechQueued"):
 			speech.pre_speechQueued.unregister(self._onSpeechQueued)
 		elif hasattr(speech, 'speak'):
 			speech.speak = self.oldSpeak
-		elif hasatt(speech.speech, 'speak'):
+		elif hasattr(speech.speech, 'speak'):
 			speech.speech.speak = self.oldSpeak
 
 		if SpeechHistorySettingsPanel in NVDASettingsDialog.categoryClasses:
