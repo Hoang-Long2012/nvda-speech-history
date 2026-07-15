@@ -377,7 +377,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		script = super().getScript(gesture)
 
-		if not script:
+		if not getattr(script, 'exit_on_press', False):
 			return finally_(self.script_commandLayerError, self.finish)
 
 		if not script.exit_on_press:
