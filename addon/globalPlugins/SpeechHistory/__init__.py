@@ -61,6 +61,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		self._history = deque(maxlen=config.conf[CONFIG_SECTION]['maxHistoryLength'])
 		self.history_pos = 0
+		self.cursor = 0
 		self._recorded = []
 		self._recording = False
 		self._record = False
@@ -74,6 +75,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _initSpeechCapture(self):
 		if hasattr(speech, "pre_speechQueued"):
 			speech.pre_speechQueued.register(self._onSpeechQueued)
+			self.oldSpeak = speech.speech.speak
+		elif hasattr(speech.speech, "pre_speech"):
+			speech.speech.pre_speech.register(self._onSpeechQueued)
 			self.oldSpeak = speech.speech.speak
 		elif hasattr(speech, 'speak'):
 			self.oldSpeak = speech.speak
@@ -112,6 +116,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			tones.beep(200, 100)
 			self.history_pos -= 1
 		self.speak(self._history[self.history_pos])
+		self.cursor = 0
 
 	# Translators: Documentation string for next speech history item script
 	@script(description=_('Review the next item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
@@ -126,6 +131,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.history_pos += 1
 
 		self.speak(self._history[self.history_pos])
+		self.cursor = 0
 
 	# Translators: Documentation string for start recording script
 	@script(description=_('Start recording NVDA\'s speech output, for copying multiple announcements to the clipboard.'), category=SCRIPT_CATEGORY)
@@ -278,7 +284,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		self.copyHistoryItemText(self._history[0])
 
-	# Translators: Documentation string for    move to beginning of speech history item script
+	# Translators: Documentation string for    move to beginning speech history item script
 	@script(description=_('Review the beginning item in NVDA\'s speech history.'), category=SCRIPT_CATEGORY)
 	def script_beginningString(self, gesture):
 		if not self._history:
@@ -287,6 +293,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		self.history_pos = 0
+		self.cursor = 0
 		self.speak(self._history[self.history_pos])
 		tones.beep(200, 100)
 
@@ -299,10 +306,87 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		self.history_pos = len(self._history) - 1
+		self.cursor = 0
 		self.speak(self._history[self.history_pos])
 		tones.beep(200, 100)
 
-	# Translators: Document string for Speech History command layer help script
+	# Translators: Documentation string for move to next character of current speech history item script
+	@script(description=_('Review the next character of current speech history item.'), category=SCRIPT_CATEGORY)
+	def script_nextChar(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+		self.cursor += 1
+		if self.cursor > len(self.getSequenceText(self._history[self.history_pos])) - 1:
+			tones.beep(200, 100)
+			self.cursor -= 1
+		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+
+	# Translators: Documentation string for move to previous character of current speech history item script
+	@script(description=_('Review the previous character of current speech history item.'), category=SCRIPT_CATEGORY)
+	def script_prevChar(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+		self.cursor -= 1
+		if self.cursor < 0:
+			tones.beep(200, 100)
+			self.cursor += 1
+		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+
+# Translators: Documentation string for    move to beginning character of current speech history item script
+	@script(description=_('Review the beginning character of current speech history item.'), category=SCRIPT_CATEGORY)
+	def script_beginningChar(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+
+		self.cursor = 0
+		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		tones.beep(200, 100)
+
+	# Translators: Documentation string for move to last character of current speech history item script
+	@script(description=_('Review the last character of current speech history item.'), category=SCRIPT_CATEGORY)
+	def script_lastChar(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+
+		self.cursor = len(self.getSequenceText(self._history[self.history_pos])) - 1
+		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		tones.beep(200, 100)
+
+	# Translators: Documentation string for copy current speech history item character script
+	@script(description=_('Copy current speech history item character.'), category=SCRIPT_CATEGORY)
+	def script_copyChar(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+
+		self.copyHistoryItemText([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+
+	# Translators: Documentation string for remove current speech history item script
+	@script(description=_('Remove current speech history item.'), category=SCRIPT_CATEGORY)
+	def script_removeCurrentItem(self, gesture):
+		if not self._history:
+			self.speak([_("No history items")])
+			tones.beep(200, 100)
+			return
+
+		history = list(self._history)
+		del history[self.history_pos]
+		self._history = deque(history, maxlen=config.conf[CONFIG_SECTION]['maxHistoryLength'])
+		if self.history_pos != 0:
+			self.history_pos -= 1
+		self.cursor = 0
+		self.speak([_('Item deleted')])
+
+	# Translators: Documentation string for Speech History command layer help script
 	@script(description=_('Speech History command layer help.'), category=SCRIPT_CATEGORY)
 	def script_speechHistoryCommandLayerHelp(self, gesture):
 		lines = []
@@ -356,8 +440,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self.log = None
 			self.logPath = None
 
-if hasattr(speech, "pre_speechQueued"):
+		if hasattr(speech, "pre_speechQueued"):
 			speech.pre_speechQueued.unregister(self._onSpeechQueued)
+		elif hasattr(speech.speech, "pre_speech"):
+			speech.speech.pre_speech.unregister(self._onSpeechQueued)
 		elif hasattr(speech, 'speak'):
 			speech.speak = self.oldSpeak
 		elif hasattr(speech.speech, 'speak'):
