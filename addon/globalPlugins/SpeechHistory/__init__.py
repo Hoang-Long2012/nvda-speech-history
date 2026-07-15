@@ -344,7 +344,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	script_exitCommandLayer.exit_on_press = True
 
 	def script_commandLayerError(self, gesture):
-		self.speak([_('Unknown key: {}').format(gesture.mainKeyName)])
+		self.speak([_('Unknown key: {}').format(gesture.displayName)])
 		tones.beep(200, 100)
 
 	def finish(self):
@@ -377,10 +377,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		script = super().getScript(gesture)
 
-		if not getattr(script, 'exit_on_press', False):
+		if not script:
 			return finally_(self.script_commandLayerError, self.finish)
 
-		if not script.exit_on_press:
+		if not getattr(script, 'exit_on_press', False):
 			return script
 
 		return finally_(script, self.finish)
