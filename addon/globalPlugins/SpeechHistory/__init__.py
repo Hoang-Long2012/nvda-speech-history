@@ -321,7 +321,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self.cursor > len(self.getSequenceText(self._history[self.history_pos])) - 1:
 			tones.beep(200, 100)
 			self.cursor -= 1
-		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		with self.suppressHistory():
+			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 
 	# Translators: Documentation string for move to previous character of current speech history item script
 	@script(description=_('Review the previous character of current speech history item.'), category=SCRIPT_CATEGORY)
@@ -334,7 +335,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if self.cursor < 0:
 			tones.beep(200, 100)
 			self.cursor += 1
-		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		with self.suppressHistory():
+			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 
 # Translators: Documentation string for    move to beginning character of current speech history item script
 	@script(description=_('Review the beginning character of current speech history item.'), category=SCRIPT_CATEGORY)
@@ -345,7 +347,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		self.cursor = 0
-		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		with self.suppressHistory():
+			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 		tones.beep(200, 100)
 
 	# Translators: Documentation string for move to last character of current speech history item script
@@ -357,7 +360,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		self.cursor = len(self.getSequenceText(self._history[self.history_pos])) - 1
-		self.speak([self.getSequenceText(self._history[self.history_pos])[self.cursor]])
+		with self.suppressHistory():
+			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 		tones.beep(200, 100)
 
 	# Translators: Documentation string for copy current speech history item character script
