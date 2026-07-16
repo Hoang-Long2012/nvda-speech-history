@@ -420,7 +420,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		self.layer = True
 		COMMAND_LAYER_GESTURES.update({gesture.identifiers: "exitCommandLayer"})
-		self.bindGestures()
+		self.bindGestures(COMMAND_LAYER_GESTURES)
 		tones.beep(400, 100)
 
 	def script_exitCommandLayer(self, gesture):
