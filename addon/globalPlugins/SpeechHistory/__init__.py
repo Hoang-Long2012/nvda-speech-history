@@ -416,7 +416,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_('Activate Speech History command layer.'), category=SCRIPT_CATEGORY)
 	def script_SpeechHistoryCommandLayer(self, gesture):
 		if self.layer:
-			return finally_(self.script_exitCommandLayer, self.finish)
+			finally_(self.script_exitCommandLayer, self.finish)
 
 		self.layer = True
 		self.bindGestures(COMMAND_LAYER_GESTURES)
