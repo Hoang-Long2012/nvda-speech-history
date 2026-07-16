@@ -416,8 +416,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(description=_('Activate Speech History command layer.'), category=SCRIPT_CATEGORY)
 	def script_SpeechHistoryCommandLayer(self, gesture):
 		if self.layer:
-			tones.beep(200, 100)
-			return
+			return finally_(self.script_exitCommandLayer, self.finish)
 
 		self.layer = True
 		self.bindGestures(COMMAND_LAYER_GESTURES)
@@ -477,7 +476,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def append_to_history(self, seq):
 		seq = [command for command in seq if not isinstance(command, FocusLossCancellableSpeechCommand)]
-		self._history.appendleft(seq)
+		self._history.appendleft(list(seq))
 		self.history_pos = 0
 		if self._recording:
 			self._recorded.append(self.getTrimmedSequenceText(seq))
@@ -490,7 +489,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		text = self.getSequenceText(speechSequence)
 		if text.strip():
-			queueFunction(eventQueue, self.append_to_history, speechSequence)
+			queueFunction(eventQueue, self.append_to_history, list(speechSequence))
 
 	def mySpeak(self, sequence, *args, **kwargs):
 		self.oldSpeak(sequence, *args, **kwargs)
@@ -498,7 +497,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		text = self.getSequenceText(sequence)
 		if text.strip():
-			queueFunction(eventQueue, self.append_to_history, sequence)
+			queueFunction(eventQueue, self.append_to_history, list(sequence))
 
 	def getSequenceText(self, sequence):
 		return speechViewer.SPEECH_ITEM_SEPARATOR.join([x for x in sequence if isinstance(x, str)])
@@ -524,7 +523,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def speak(self, sequence):
 		with self.suppressHistory():
-			if hasattr(self, 'oldSpeak', None):
+			if hasattr(self, 'oldSpeak'):
 				self.oldSpeak(sequence)
 				return
 			ui.message(self.getSequenceText(sequence))
