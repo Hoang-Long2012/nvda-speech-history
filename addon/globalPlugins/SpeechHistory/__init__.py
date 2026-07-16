@@ -88,6 +88,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		else:
 			log.error('Speech history not supported')
 			ui.message(_('Speech history not supported'))
+			return
+		log.info('Speech History initialized')
+		log.debug(f'Using {self.oldSpeak.__module__}.{self.oldSpeak.__name__}')
 
 	# Translators: Documentation string for copy currently selected speech history item script
 	@script(description=_('Press once to copy the currently selected speech history item to the clipboard, which by default will be the most recently spoken text by NVDA. Double press to copy the currently selected speech history item to the clipboard with whitespaces is trim.'), category=SCRIPT_CATEGORY)
@@ -322,7 +325,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			tones.beep(200, 100)
 			self.cursor -= 1
 		with self.suppressHistory():
-			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
+			speech.speakSpelling(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 
 	# Translators: Documentation string for move to previous character of current speech history item script
 	@script(description=_('Review the previous character of current speech history item.'), category=SCRIPT_CATEGORY)
@@ -336,7 +339,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			tones.beep(200, 100)
 			self.cursor += 1
 		with self.suppressHistory():
-			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
+			speech.speakSpelling(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 
 # Translators: Documentation string for    move to beginning character of current speech history item script
 	@script(description=_('Review the beginning character of current speech history item.'), category=SCRIPT_CATEGORY)
@@ -348,7 +351,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		self.cursor = 0
 		with self.suppressHistory():
-			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
+			speech.speakSpelling(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 		tones.beep(200, 100)
 
 	# Translators: Documentation string for move to last character of current speech history item script
@@ -361,7 +364,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		self.cursor = len(self.getSequenceText(self._history[self.history_pos])) - 1
 		with self.suppressHistory():
-			speech.speakTypedCharacters(self.getSequenceText(self._history[self.history_pos])[self.cursor])
+			speech.speakSpelling(self.getSequenceText(self._history[self.history_pos])[self.cursor])
 		tones.beep(200, 100)
 
 	# Translators: Documentation string for copy current speech history item character script
@@ -519,9 +522,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		finally:
 			self.ignore_history -= 1
 
-	def speak(self, sequence, *args, **kwargs):
+	def speak(self, sequence):
 		with self.suppressHistory():
-			self.oldSpeak(sequence, *args, **kwargs)
+			if hasattr(self, 'oldSpeak', None):
+				self.oldSpeak(sequence)
+				return
+			ui.message(self.getSequenceText(sequence))
 
 	def copyHistoryItemText(self, item, trim=None):
 		text = self.getTrimmedSequenceText(item, trim=trim)
